@@ -3,6 +3,12 @@
  * @description A PDF generation utility class that allows the creation of PDF files directly in
  * Apex without requiring Visualforce. This class implements core
  * PDF 1.7 specification functionality for creating simple PDF documents.
+ * inspired by jsPDF
+ *
+ * @author Ron Hess
+ * @since 2025
+ * @version 0.9
+ * @license MIT
  *
  * @supported
  * JPEG image, Header, Paragraph, Text wrapping, Image, Multi Page, Colors, Styles
@@ -16,7 +22,7 @@
  * @tests
  * sf apex run test -c -n "AutoTableTest,PdfTest,PdfImageProcessorTest" -r human -w 10
  *
- * @example
+ * @example for execute anon
     Pdf doc3 = new Pdf();
     doc3.h1('First Page Heading 1', 72, 72);
     doc3.text('Content under heading 1...', 72, null);
@@ -26,7 +32,7 @@
     doc3.h3('Tertiary Heading', 72, null);
     doc3.save('Document TEST3 ' + DateTime.now().getTime());
 
-* @see PdfTest for more examples, see PLM/scripts for more examples
+* @see PdfTest for examples, see scripts for more examples
 */
 
 public with sharing class Pdf {
