@@ -1,0 +1,89 @@
+@SuppressWarnings('PMD.ExcessiveParameterList, PMD.NcssConstructorCount')
+/**
+ * @description Class representing a text element in a PDF document
+ * @author Propel PLM
+ */
+public with sharing class PdfText {
+    public String text;
+    public Integer x;
+    public Integer y;
+    public Integer fontSize;
+    public String fontStyle;
+    public String textColor = '000000';  // Default black
+    public String fontName = PdfConstants.FONT_HELVETICA; // Default font
+    public Boolean needsPageBreak = false;
+
+    /**
+     * @description Constructor for PdfText
+     * @param text The text content
+     * @param x The x-coordinate in points
+     * @param y The y-coordinate in points
+     * @param fontSize The font size in points
+     * @param fontStyle The font style (normal or bold)
+     */
+    public PdfText(String text, Integer x, Integer y, Integer fontSize, String fontStyle) {
+        this(text, x, y, fontSize, fontStyle, '000000', PdfConstants.FONT_HELVETICA); // Default to black, Helvetica font
+    }
+
+    /**
+     * @description Constructor for PdfText with color
+     * @param text The text content
+     * @param x The x-coordinate in points
+     * @param y The y-coordinate in points
+     * @param fontSize The font size in points
+     * @param fontStyle The font style (normal or bold)
+     * @param textColor The text color as hex RGB string (e.g., '000000' for black)
+     */
+    public PdfText(String text, Integer x, Integer y, Integer fontSize, String fontStyle, String textColor) {
+        this(text, x, y, fontSize, fontStyle, textColor, PdfConstants.FONT_HELVETICA);
+    }
+
+    /**
+     * @description Constructor for PdfText with color and font
+     * @param text The text content
+     * @param x The x-coordinate in points
+     * @param y The y-coordinate in points
+     * @param fontSize The font size in points
+     * @param fontStyle The font style (normal or bold)
+     * @param textColor The text color as hex RGB string (e.g., '000000' for black)
+     * @param fontName The font name to use (Helvetica or Arial)
+     */
+    public PdfText(String text, Integer x, Integer y, Integer fontSize, String fontStyle, String textColor, String fontName) {
+        this.text = text;
+        this.x = x;
+        this.y = y;
+        this.fontSize = fontSize;
+        this.fontStyle = fontStyle;
+
+        // Process text color
+        if (textColor != null && textColor.trim() != '') {
+            String colorTrimmed = textColor.trim();
+            // Ensure it's a valid 6-character hex color
+            if (colorTrimmed.length() == 6 && colorTrimmed.isAlphanumeric()) {
+                this.textColor = colorTrimmed;
+            } else {
+                System.debug(LoggingLevel.WARN, 'Invalid text color format: ' + colorTrimmed + '. Using default black.');
+                this.textColor = '000000';
+            }
+        } else {
+            this.textColor = '000000';
+        }
+
+        // Process font name
+        if (fontName != null && fontName.trim() != '') {
+            String fontTrimmed = fontName.trim();
+            // Check if it's a supported font
+            if (fontTrimmed == PdfConstants.FONT_HELVETICA ||
+                fontTrimmed == PdfConstants.FONT_HELVETICA_BOLD ||
+                fontTrimmed == PdfConstants.FONT_COURIER ||
+                fontTrimmed == PdfConstants.FONT_COURIER_BOLD) {
+                this.fontName = fontTrimmed;
+            } else {
+                System.debug(LoggingLevel.WARN, 'Unsupported font name: ' + fontTrimmed + '. Using default Helvetica.');
+                this.fontName = PdfConstants.FONT_HELVETICA;
+            }
+        } else {
+            this.fontName = PdfConstants.FONT_HELVETICA;
+        }
+    }
+}
