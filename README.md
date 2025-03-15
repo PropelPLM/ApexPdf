@@ -8,7 +8,7 @@ API docs that guide this project: https://raw.githack.com/MrRio/jsPDF/master/doc
 
 # Usage
 This repo is intended to be included in a larger project as a git submodule.  
-Example, when you have deployed the Apex code in this repo, the following execute anon should produce a PDF file in **Files**
+For example, when you have deployed the Apex code in this repo, the following execute anon apex should produce a PDF file in **Files**
 ```
 List<Account> accounts = [SELECT Id, Name, Phone, Industry, Type,
                             BillingStreet, BillingCity, BillingState,
