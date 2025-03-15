@@ -1,6 +1,5 @@
 # ApexPdf
-Native Apex re-implementation of jsPDF api in the Salesforce Apex language
-
+Native Apex re-implementation of jsPDF API using the Salesforce Apex language.
 This implementation is a partial port of jsPDF.
 
 see: https://github.com/parallax/jsPDF
