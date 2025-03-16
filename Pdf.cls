@@ -22,7 +22,7 @@
  * @tests
  * sf apex run test -c -n "AutoTableTest,PdfTest,PdfImageProcessorTest" -r human -w 10
  *
- * @example for execute anon
+ * @example
     Pdf doc3 = new Pdf();
     doc3.h1('First Page Heading 1', 72, 72);
     doc3.text('Content under heading 1...', 72, null);
@@ -32,7 +32,7 @@
     doc3.h3('Tertiary Heading', 72, null);
     doc3.save('Document TEST3 ' + DateTime.now().getTime());
 
-* @see PdfTest for examples, see scripts for more examples
+* @see PdfTest for more examples, see PLM/scripts for more examples
 */
 
 public with sharing class Pdf {
@@ -58,6 +58,18 @@ public with sharing class Pdf {
     private Integer lineWidth = 1;        // Default 1pt
     private String fontName = PdfConstants.FONT_HELVETICA;  // Default font (Helvetica)
     private String fontStyle = PdfConstants.STYLE_NORMAL;   // Default style (normal)
+
+    /**
+     * @description Set the fill color for subsequent shape operations
+     * @param color Hex color string (e.g., '000000' for black)
+     * @return This Pdf instance for method chaining
+     */
+    public Pdf setFillColor(String color) {
+        Map<String, Object> styles = new Map<String, Object>{
+            'fillColor' => color
+        };
+        return applyStyles(styles, false);
+    }
 
     /**
      * @description Set the text color for subsequent text operations
@@ -221,6 +233,48 @@ public with sharing class Pdf {
     public Pdf rect(PdfRect rect) {
         // Add it to the current page's rectangle elements
         this.rectElements.add(rect);
+
+        return this;
+    }
+
+    /**
+     * @description Draws a line from (x1,y1) to (x2,y2)
+     * @param x1 X-coordinate of starting point
+     * @param y1 Y-coordinate of starting point
+     * @param x2 X-coordinate of ending point
+     * @param y2 Y-coordinate of ending point
+     * @return Pdf The current PDF instance for method chaining
+     */
+    public Pdf line(Integer x1, Integer y1, Integer x2, Integer y2) {
+        // For a line, we'll create a very thin rectangle that goes from point 1 to point 2
+        // Calculate width and height based on the points
+        Integer width = Math.abs(x2 - x1);
+        Integer height = Math.abs(y2 - y1);
+
+        // Handle horizontal line
+        if (height == 0) {
+            Integer x = Math.min(x1, x2);
+            PdfRect rect = new PdfRect(x, y1, width, lineWidth, 'F', lineColor, lineColor, lineWidth);
+            this.rectElements.add(rect);
+            return this;
+        }
+
+        // Handle vertical line
+        if (width == 0) {
+            Integer y = Math.min(y1, y2);
+            PdfRect rect = new PdfRect(x1, y, lineWidth, height, 'F', lineColor, lineColor, lineWidth);
+            this.rectElements.add(rect);
+            return this;
+        }
+
+        // For diagonal lines, we'd need to use PDF path operations
+        // For now, we'll use a simplified approach - create a path in the content stream
+        PdfRect specialLine = new PdfRect();
+        specialLine.specialContent = String.format('{0} {1} m {2} {3} l S', new Object[]{
+            x1, PdfConstants.PAGE_HEIGHT - y1, // First point (move to)
+            x2, PdfConstants.PAGE_HEIGHT - y2  // Second point (line to)
+        });
+        this.rectElements.add(specialLine);
 
         return this;
     }

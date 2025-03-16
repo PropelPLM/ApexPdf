@@ -46,6 +46,11 @@ public class PdfRect {
     public Integer lineWidth { get; set; }
 
     /**
+     * Special content for direct PDF commands (used for diagonal lines)
+     */
+    public String specialContent { get; set; }
+
+    /**
      * @description Default constructor
      */
     public PdfRect() {
@@ -96,6 +101,11 @@ public class PdfRect {
      * @return The PDF command string to draw this rectangle
      */
     public String toPdfCommand() {
+        // If we have special content (for diagonal lines), use that directly
+        if (specialContent != null && specialContent.trim() != '') {
+            return specialContent;
+        }
+
         // Convert coordinates from top-down to PDF's bottom-up coordinate system
         Integer pdfY = PdfConstants.PAGE_HEIGHT - this.y - this.height;
 
