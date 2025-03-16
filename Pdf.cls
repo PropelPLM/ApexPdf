@@ -1,4 +1,4 @@
-@SuppressWarnings('PMD.ExcessiveParameterList, PMD.CognitiveComplexity, PMD.AvoidDebugStatements, PMD.ExcessiveClassLength, PMD.ExcessivePublicCount, PMD.TooManyFields')
+@SuppressWarnings('PMD.NcssMethodCount, PMD.ExcessiveParameterList, PMD.CognitiveComplexity, PMD.AvoidDebugStatements, PMD.ExcessiveClassLength, PMD.ExcessivePublicCount, PMD.TooManyFields')
 /**
  * @description A PDF generation utility class that allows the creation of PDF files directly in
  * Apex without requiring Visualforce. This class implements core
