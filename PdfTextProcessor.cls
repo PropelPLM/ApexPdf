@@ -155,16 +155,17 @@ public with sharing class PdfTextProcessor {
                 PdfText lineElement = new PdfText(currentLine, x, currentY, fontSize, fontStyle, '000000');
                 result.add(lineElement);
 
-                // Start new line - IMPORTANT ASSUMPTION: Always reset to left margin for wrapped lines
-                // This ensures consistent paragraph formatting regardless of where text started
+                // Start new line
                 currentLine = word;
                 currentY += lineHeight;
 
-                // Reset X to left margin for all wrapped lines, ignoring the original X value
-                // This is a design decision that assumes wrapped text always aligns to the left margin
-                // When text wraps, subsequent lines should always start at the left margin regardless
-                // of where the original text began (mid-paragraph, indented, etc.)
-                x = PdfConstants.PAGE_MARGIN;
+                // Determine X position for the next line based on wrapToXPosition property
+                if (options != null && options.wrapToXPosition != null) {
+                    // If wrapToXPosition is specified, use that value (like left margin for traditional paragraphs)
+                    x = options.wrapToXPosition;
+                }
+                // If wrapToXPosition is null, maintain the current X position (default behavior)
+                // This is ideal for column-based layouts where text should stay within its column
 
                 // After the first line is processed, use the full maxWidth for subsequent lines
                 currentMaxWidth = maxWidth;

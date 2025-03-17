@@ -267,14 +267,37 @@ public with sharing class Pdf {
             return this;
         }
 
-        // For diagonal lines, we'd need to use PDF path operations
-        // For now, we'll use a simplified approach - create a path in the content stream
-        PdfRect specialLine = new PdfRect();
-        specialLine.specialContent = String.format('{0} {1} m {2} {3} l S', new Object[]{
-            x1, PdfConstants.PAGE_HEIGHT - y1, // First point (move to)
-            x2, PdfConstants.PAGE_HEIGHT - y2  // Second point (line to)
-        });
-        this.rectElements.add(specialLine);
+        // For diagonal lines, we'll approximate with a series of small rectangles
+        // This approach avoids relying on direct PDF content stream commands
+
+        // Calculate the angle and distance
+        Double dx = x2 - x1;
+        Double dy = y2 - y1;
+        Double distance = Math.sqrt(dx * dx + dy * dy);
+
+        // Number of steps to create a smooth line
+        Integer steps = Math.max(Math.abs(Integer.valueOf(distance)), 10);
+
+        // Draw a series of small rectangles along the line path
+        for (Integer i = 0; i < steps; i++) {
+            Double ratio = i / (Double)steps;
+            Integer dotX = Integer.valueOf(x1 + (ratio * dx));
+            Integer dotY = Integer.valueOf(y1 + (ratio * dy));
+
+            // Create a small rectangle at this point
+            PdfRect dot = new PdfRect(
+                dotX, dotY, lineWidth, lineWidth,
+                'F', lineColor, lineColor, lineWidth
+            );
+            this.rectElements.add(dot);
+        }
+
+        // Add one final dot at the exact endpoint
+        PdfRect endDot = new PdfRect(
+            x2, y2, lineWidth, lineWidth,
+            'F', lineColor, lineColor, lineWidth
+        );
+        this.rectElements.add(endDot);
 
         return this;
     }
@@ -297,6 +320,14 @@ public with sharing class Pdf {
         public Integer maxWidth;
         public Integer fontSize;
         public String fontStyle;
+
+        /**
+         * Controls where wrapped lines should begin (X position)
+         * When null (default), wrapped lines maintain the original X position - ideal for columns
+         * When set to a specific value (like PdfConstants.PAGE_MARGIN), wrapped lines
+         * will start at that position - ideal for traditional paragraphs
+         */
+        public Integer wrapToXPosition;
 
         public TextOptions() {
             this.fontSize = PdfConstants.DEFAULT_FONT_SIZE;
@@ -607,6 +638,27 @@ public with sharing class Pdf {
         // Propagate current font style to the options
         // This fixes the issue with italic and bold styles not being maintained
         options.fontStyle = this.fontStyle;
+
+        // By default, maintain X position for wrapped lines (column-aware behavior)
+        // Leave options.wrapToXPosition as null to maintain the current X position
+
+        return text(text, x, y, options);
+    }
+
+    /**
+     * @description Adds paragraph-style text with wrapping to the left margin
+     * @param text The text content
+     * @param x Starting X position
+     * @param y Starting Y position
+     * @return The current Pdf instance for method chaining
+     */
+    public Pdf paragraph(String text, Integer x, Integer y) {
+        TextOptions options = new TextOptions();
+        options.maxWidth = PdfConstants.PAGE_WIDTH - (PdfConstants.PAGE_MARGIN * 2);
+        options.fontStyle = this.fontStyle;
+
+        // Explicitly set wrapped lines to start at the left margin
+        options.wrapToXPosition = PdfConstants.PAGE_MARGIN;
 
         return text(text, x, y, options);
     }
