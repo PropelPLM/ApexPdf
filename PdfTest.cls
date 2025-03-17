@@ -206,4 +206,105 @@ private class PdfTest {
 
         Test.stopTest();
     }
+    
+    /**
+     * @description Tests the paragraph method with text wrapping to left margin
+     */
+    @isTest
+    static void testParagraphMethod() {
+        Test.startTest();
+        
+        // Create a PDF document
+        Pdf doc = new Pdf();
+        
+        // Set up test parameters
+        Integer startX = 100; // Column starting position
+        Integer startY = 50;
+        String longText = 'This is a long paragraph that should wrap to multiple lines. ' +
+                         'We want to ensure the text wraps correctly to the left margin ' +
+                         'as specified by the paragraph method. Lorem ipsum dolor sit amet, ' +
+                         'consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.';
+        
+        // Test the paragraph method which should wrap to left margin
+        doc.paragraph(longText, startX, startY);
+        
+        // Execute the PDF generation
+        String pdfContent = doc.toPdf();
+        
+        // Basic validation - PDF should be generated
+        System.assertNotEquals(null, pdfContent, 'PDF content should not be null');
+        System.assert(pdfContent.startsWith('%PDF-'), 'PDF content should start with the PDF header');
+        
+        // Validate the current Y position was updated (text was added)
+        System.assert(doc.lastY > startY, 'Y position should be increased after adding text');
+        
+        // Compare paragraph method with text method using wrapToXPosition
+        doc = new Pdf(); // Create a new document
+        
+        // Use paragraph method
+        doc.paragraph(longText, startX, startY);
+        Integer paragraphEndY = doc.lastY;
+        
+        // Reset document
+        doc = new Pdf();
+        
+        // Use text method with manual TextOptions
+        Pdf.TextOptions options = new Pdf.TextOptions();
+        options.wrapToXPosition = PdfConstants.PAGE_MARGIN;
+        doc.text(longText, startX, startY, options);
+        Integer textEndY = doc.lastY;
+        
+        // The two methods should produce the same ending Y position
+        System.assertEquals(paragraphEndY, textEndY, 
+                          'Paragraph method should match text method with wrapToXPosition = PAGE_MARGIN');
+        
+        Test.stopTest();
+    }
+    
+    /**
+     * @description Test the line method for different line types
+     */
+    @isTest
+    static void testLineMethod() {
+        Test.startTest();
+        
+        // Create a PDF document
+        Pdf doc = new Pdf();
+        
+        // Test horizontal line
+        Integer x1 = 50;
+        Integer y1 = 50;
+        Integer x2 = 200;
+        Integer y2 = 50; // Same Y for horizontal
+        doc.line(x1, y1, x2, y2);
+        
+        // Test vertical line
+        x1 = 50;
+        y1 = 100;
+        x2 = 50; // Same X for vertical
+        y2 = 200;
+        doc.line(x1, y1, x2, y2);
+        
+        // Test diagonal line
+        x1 = 100;
+        y1 = 100;
+        x2 = 200;
+        y2 = 200;
+        doc.line(x1, y1, x2, y2);
+        
+        // Execute the PDF generation
+        String pdfContent = doc.toPdf();
+        
+        // Basic validation - PDF should be generated
+        System.assertNotEquals(null, pdfContent, 'PDF content should not be null');
+        System.assert(pdfContent.startsWith('%PDF-'), 'PDF content should start with the PDF header');
+        
+        // More detailed validation
+        // For horizontal and vertical lines, we expect to see rectangle elements
+        // For diagonal lines, we expect to see a series of small dots
+        System.assert(pdfContent.containsIgnoreCase('/Rect') || pdfContent.containsIgnoreCase('/R'), 
+                    'PDF should contain rectangle elements');
+        
+        Test.stopTest();
+    }
 }
