@@ -367,6 +367,7 @@ public with sharing class Pdf {
         public TextOptions() {
             this.fontSize = PdfConstants.DEFAULT_FONT_SIZE;
             this.fontStyle = PdfConstants.STYLE_NORMAL;
+            this.maxWidth = PdfConstants.PAGE_WIDTH - (PdfConstants.PAGE_MARGIN * 2); // Default to full page width minus margins
         }
     }
 
