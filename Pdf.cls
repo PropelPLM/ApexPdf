@@ -42,7 +42,7 @@ public with sharing class Pdf {
     private Map<String, Object> documentInfo;
     private List<PdfText> textElements;
     private List<PdfImage> imageElements;
-    private List<PdfRect> rectElements;
+    @testVisible private List<PdfRect> rectElements;
     private Integer currentObjectNumber;
     private Map<String, Integer> imageObjectNumbers;  // Maps image IDs to their object numbers
     private Integer lastY;  // Track the last Y position
@@ -88,6 +88,41 @@ public with sharing class Pdf {
             }
         } else {
             this.textColor = '000000';
+        }
+        return this;
+    }
+
+    /**
+     * @description Set the line color for subsequent drawing operations
+     * @param color Hex color string (e.g., '000000' for black)
+     * @return This Pdf instance for method chaining
+     */
+    public Pdf setLineColor(String color) {
+        if (color != null && color.trim() != '') {
+            String colorTrimmed = color.trim();
+            // Ensure it's a valid 6-character hex color
+            if (colorTrimmed.length() == 6 && colorTrimmed.isAlphanumeric()) {
+                this.lineColor = colorTrimmed;
+            } else {
+                System.debug(LoggingLevel.WARN, 'Invalid line color format: ' + colorTrimmed + '. Using default black.');
+                this.lineColor = '000000';
+            }
+        } else {
+            this.lineColor = '000000';
+        }
+        return this;
+    }
+
+    /**
+     * @description Set the line width for subsequent drawing operations
+     * @param width Line width in points
+     * @return This Pdf instance for method chaining
+     */
+    public Pdf setLineWidth(Integer width) {
+        if (width != null && width > 0) {
+            this.lineWidth = width;
+        } else {
+            this.lineWidth = 1; // Default to 1 point width
         }
         return this;
     }
@@ -418,18 +453,6 @@ public with sharing class Pdf {
     }
 
     /**
-     * @description Checks if the given Y position would fit on the current page
-     * @param y The Y position to check
-     * @param lineCount Expected number of lines (default 1)
-     * @return Boolean true if it fits, false if it would overflow
-     */
-    private Boolean willFitOnPage(Integer y, Integer lineCount) {
-        Integer lineHeight = getLineHeight(new TextOptions());
-        Integer totalHeight = y + (lineCount * lineHeight);
-        return totalHeight <= (PdfConstants.PAGE_HEIGHT - PdfConstants.PAGE_MARGIN);  // Leave margin at bottom
-    }
-
-    /**
      * @description Gets the current Y position for text placement
      * @return Integer Y position in points from top of page
      */
@@ -645,23 +668,6 @@ public with sharing class Pdf {
         return text(text, x, y, options);
     }
 
-    /**
-     * @description Adds paragraph-style text with wrapping to the left margin
-     * @param text The text content
-     * @param x Starting X position
-     * @param y Starting Y position
-     * @return The current Pdf instance for method chaining
-     */
-    public Pdf paragraph(String text, Integer x, Integer y) {
-        TextOptions options = new TextOptions();
-        options.maxWidth = PdfConstants.PAGE_WIDTH - (PdfConstants.PAGE_MARGIN * 2);
-        options.fontStyle = this.fontStyle;
-
-        // Explicitly set wrapped lines to start at the left margin
-        options.wrapToXPosition = PdfConstants.PAGE_MARGIN;
-
-        return text(text, x, y, options);
-    }
 
     /**
      * @description Helper method for creating headings with different sizes

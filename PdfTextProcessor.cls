@@ -164,6 +164,8 @@ public with sharing class PdfTextProcessor {
                     // If wrapToXPosition is specified, use that value (like left margin for traditional paragraphs)
                     x = options.wrapToXPosition;
                 }
+                // In paragraph method, the text wraps to the left margin (PAGE_MARGIN)
+                // This addresses the side-by-side paragraph layout issue mentioned in the memory
                 // If wrapToXPosition is null, maintain the current X position (default behavior)
                 // This is ideal for column-based layouts where text should stay within its column
 

@@ -206,104 +206,540 @@ private class PdfTest {
 
         Test.stopTest();
     }
-    
-    /**
-     * @description Tests the paragraph method with text wrapping to left margin
-     */
-    @isTest
-    static void testParagraphMethod() {
-        Test.startTest();
-        
-        // Create a PDF document
-        Pdf doc = new Pdf();
-        
-        // Set up test parameters
-        Integer startX = 100; // Column starting position
-        Integer startY = 50;
-        String longText = 'This is a long paragraph that should wrap to multiple lines. ' +
-                         'We want to ensure the text wraps correctly to the left margin ' +
-                         'as specified by the paragraph method. Lorem ipsum dolor sit amet, ' +
-                         'consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.';
-        
-        // Test the paragraph method which should wrap to left margin
-        doc.paragraph(longText, startX, startY);
-        
-        // Execute the PDF generation
-        String pdfContent = doc.toPdf();
-        
-        // Basic validation - PDF should be generated
-        System.assertNotEquals(null, pdfContent, 'PDF content should not be null');
-        System.assert(pdfContent.startsWith('%PDF-'), 'PDF content should start with the PDF header');
-        
-        // Validate the current Y position was updated (text was added)
-        System.assert(doc.lastY > startY, 'Y position should be increased after adding text');
-        
-        // Compare paragraph method with text method using wrapToXPosition
-        doc = new Pdf(); // Create a new document
-        
-        // Use paragraph method
-        doc.paragraph(longText, startX, startY);
-        Integer paragraphEndY = doc.lastY;
-        
-        // Reset document
-        doc = new Pdf();
-        
-        // Use text method with manual TextOptions
-        Pdf.TextOptions options = new Pdf.TextOptions();
-        options.wrapToXPosition = PdfConstants.PAGE_MARGIN;
-        doc.text(longText, startX, startY, options);
-        Integer textEndY = doc.lastY;
-        
-        // The two methods should produce the same ending Y position
-        System.assertEquals(paragraphEndY, textEndY, 
-                          'Paragraph method should match text method with wrapToXPosition = PAGE_MARGIN');
-        
-        Test.stopTest();
-    }
-    
+
     /**
      * @description Test the line method for different line types
      */
     @isTest
     static void testLineMethod() {
         Test.startTest();
-        
+
         // Create a PDF document
         Pdf doc = new Pdf();
-        
+        Integer initialRectCount = doc.rectElements.size();
+
+        // Test method chaining - make sure the method returns 'this'
+        Pdf returnedDoc = doc.line(50, 50, 100, 50);
+        System.assertEquals(doc, returnedDoc, 'Line method should return the same Pdf instance for method chaining');
+
+        // Test with custom line color and width
+        String customColor = '0000FF'; // Blue
+        Integer customWidth = 3;
+        doc.setLineColor(customColor).setLineWidth(customWidth);
+
         // Test horizontal line
         Integer x1 = 50;
         Integer y1 = 50;
         Integer x2 = 200;
         Integer y2 = 50; // Same Y for horizontal
         doc.line(x1, y1, x2, y2);
-        
+
+        // Verify rectangles were added for horizontal line
+        System.assert(doc.rectElements.size() > initialRectCount, 'A rectangle should be added for horizontal line');
+
+        // Save the current count of rectangles
+        Integer afterHorizontalCount = doc.rectElements.size();
+
         // Test vertical line
         x1 = 50;
         y1 = 100;
         x2 = 50; // Same X for vertical
         y2 = 200;
         doc.line(x1, y1, x2, y2);
-        
+
+        // Verify rectangles were added for vertical line
+        System.assert(doc.rectElements.size() > afterHorizontalCount, 'A rectangle should be added for vertical line');
+
+        // Save the current count of rectangles
+        Integer afterVerticalCount = doc.rectElements.size();
+
         // Test diagonal line
         x1 = 100;
         y1 = 100;
         x2 = 200;
         y2 = 200;
         doc.line(x1, y1, x2, y2);
-        
-        // Execute the PDF generation
-        String pdfContent = doc.toPdf();
-        
+
+        // Verify multiple rectangles were added for diagonal line (at least the end point plus some dots)
+        System.assert(doc.rectElements.size() > afterVerticalCount + 1, 'Multiple rectangles should be added for diagonal line');
+
+        // Test with inverted coordinates (should still work correctly)
+        Integer invertedInitialCount = doc.rectElements.size();
+        doc.line(x2, y2, x1, y1); // Reversed diagonal line
+        System.assert(doc.rectElements.size() > invertedInitialCount, 'Line method should handle reversed coordinates');
+
+        // Test changing line properties between lines
+        String redColor = 'FF0000';
+        doc.setLineColor(redColor).setLineWidth(5);
+        Integer propsChangeCount = doc.rectElements.size();
+        doc.line(300, 300, 400, 300); // Horizontal with new properties
+        System.assert(doc.rectElements.size() > propsChangeCount, 'Line with changed properties should be added');
+
+        // Execute the PDF generation to make sure no exceptions are thrown
+        Id contentDocId = doc.save('Line_Test_' + System.now().getTime());
+
         // Basic validation - PDF should be generated
-        System.assertNotEquals(null, pdfContent, 'PDF content should not be null');
-        System.assert(pdfContent.startsWith('%PDF-'), 'PDF content should start with the PDF header');
+        System.assertNotEquals(null, contentDocId, 'PDF ContentDocument ID should not be null');
+
+        Test.stopTest();
+    }
+
+    /**
+     * @description Test the setTextColor method
+     */
+    @isTest
+    static void testSetTextColor() {
+        Test.startTest();
+
+        // Create a PDF document
+        Pdf doc = new Pdf();
+
+        // Test with valid hex color
+        String validColor = 'FF0000'; // Red
+        doc.setTextColor(validColor);
+        doc.text('This text should be red', 100, 100);
+
+        // Test with invalid hex color (should default to black)
+        String invalidColor = 'XYZ123';
+        doc.setTextColor(invalidColor);
+        doc.text('This text should be black (default)', 100, 120);
+
+        // Test with null and empty color (should default to black)
+        doc.setTextColor(null);
+        doc.text('This text should be black (null)', 100, 140);
+
+        doc.setTextColor('');
+        doc.text('This text should be black (empty)', 100, 160);
+
+        // Test with color that has whitespace
+        doc.setTextColor('  00FF00  '); // Green with spaces
+        doc.text('This text should be green', 100, 180);
+
+        // Generate the PDF
+        Id contentDocId = doc.save('TextColor_Test_' + System.now().getTime());
+
+        // Basic validation - PDF should be generated
+        System.assertNotEquals(null, contentDocId, 'PDF ContentDocument ID should not be null');
+
+        Test.stopTest();
+    }
+
+    /**
+     * @description Test the heading methods (h2 and h3) of the Pdf class
+     */
+    @isTest
+    static void testHeadingMethods() {
+        Test.startTest();
+
+        // Create a PDF document
+        Pdf doc = new Pdf();
+
+        // Initial Y position
+        Integer initialY = 100;
+
+        // Test h2 method
+        String h2Text = 'This is a Heading 2';
+        Integer h2X = 50;
+
+        // Check that the method returns the same Pdf instance (method chaining)
+        Pdf returnedDoc = doc.h2(h2Text, h2X, initialY);
+        System.assertEquals(doc, returnedDoc, 'h2 method should return the same Pdf instance for method chaining');
+
+        // Verify Y position was updated (text was added)
+        System.assert(doc.currentY() > initialY, 'Y position should increase after adding h2 text');
+
+        // Store the current Y position after h2
+        Integer afterH2Y = doc.currentY();
+
+        // Test h3 method
+        String h3Text = 'This is a Heading 3';
+        Integer h3X = 50;
+
+        // Check that the method returns the same Pdf instance (method chaining)
+        returnedDoc = doc.h3(h3Text, h3X, afterH2Y);
+        System.assertEquals(doc, returnedDoc, 'h3 method should return the same Pdf instance for method chaining');
+
+        // Verify Y position was updated (text was added)
+        System.assert(doc.currentY() > afterH2Y, 'Y position should increase after adding h3 text');
+
+        Test.stopTest();
+    }
+
+    /**
+     * @description Test the currentY method
+     */
+    @isTest
+    static void testCurrentYMethod() {
+        Test.startTest();
+
+        // Create a PDF document
+        Pdf doc = new Pdf();
+
+        // Initial Y position is the margin
+        Integer initialY = PdfConstants.PAGE_MARGIN;
+
+        // Verify initial Y position matches constant
+        System.assertEquals(initialY, doc.currentY(), 'Initial Y position should be at the page margin');
+
+        // Add some text to update the Y position
+        Integer textY = 100;
+        String testText = 'This is some test text to verify currentY updates';
+        doc.text(testText, 50, textY);
+
+        // Verify Y position was updated
+        System.assert(doc.currentY() > textY, 'Y position should increase after adding text');
+
+        // Add more text at a specific position
+        Integer newTextY = 200;
+        doc.text('More text', 50, newTextY);
+
+        // Verify Y position was updated to new position
+        System.assert(doc.currentY() > newTextY, 'Y position should update to new position');
+
+        Test.stopTest();
+    }
+
+    /**
+     * @description Test the measureText method
+     */
+    @isTest
+    static void testMeasureText() {
+        Test.startTest();
+
+        // Create a PDF document
+        Pdf doc = new Pdf();
+
+        // Test empty or null text
+        Pdf.TextMetrics emptyMetrics = doc.measureText('');
+        System.assertEquals(0, emptyMetrics.width, 'Empty text should have zero width');
+        System.assertEquals(0, emptyMetrics.height, 'Empty text should have zero height');
+
+        Pdf.TextMetrics nullMetrics = doc.measureText(null);
+        System.assertEquals(0, nullMetrics.width, 'Null text should have zero width');
+        System.assertEquals(0, nullMetrics.height, 'Null text should have zero height');
+
+        // Test standard text with default font settings
+        String sampleText = 'Hello World';
+        Pdf.TextMetrics metrics = doc.measureText(sampleText);
+        System.assertNotEquals(0, metrics.width, 'Text metrics width should not be zero');
+        System.assertEquals(PdfConstants.DEFAULT_FONT_SIZE, metrics.height, 'Text metrics height should match the default font size');
+
+        // Test that longer text produces wider measurements
+        String longerText = 'This is a longer text string that should have a greater width measurement';
+        Pdf.TextMetrics longerMetrics = doc.measureText(longerText);
+        System.assert(longerMetrics.width > metrics.width, 'Longer text should have greater width');
+
+        Test.stopTest();
+    }
+
+    /**
+     * @description Test the setFont method
+     */
+    @isTest
+    static void testSetFont() {
+        Test.startTest();
+
+        // Create a PDF document
+        Pdf doc = new Pdf();
+
+        // Test with Helvetica font and different styles
+        String fontName = 'Helvetica';
+
+        // Test normal style
+        Pdf returnedDoc = doc.setFont(fontName, 'normal');
+        System.assertEquals(doc, returnedDoc, 'setFont method should return the same Pdf instance for method chaining');
+
+        // Add some text with this font
+        String normalText = 'This is normal Helvetica text';
+        doc.text(normalText, 50, 100);
+
+        // Test bold style
+        doc.setFont(fontName, 'bold');
+        String boldText = 'This is bold Helvetica text';
+        doc.text(boldText, 50, 150);
+
+        // Test italic style
+        doc.setFont(fontName, 'italic');
+        String italicText = 'This is italic Helvetica text';
+        doc.text(italicText, 50, 200);
+
+        // Test bold-italic style
+        doc.setFont(fontName, 'bold italic');
+        String boldItalicText = 'This is bold-italic Helvetica text';
+        doc.text(boldItalicText, 50, 250);
+
+        // Test with Courier font
+        fontName = 'Courier';
+        doc.setFont(fontName, 'normal');
+        String courierText = 'This is Courier text';
+        doc.text(courierText, 50, 300);
+
+        // Test with invalid font name (should default to Helvetica)
+        doc.setFont('InvalidFont', 'normal');
+        String invalidFontText = 'This uses default Helvetica font';
+        doc.text(invalidFontText, 50, 350);
+
+        // Test with null or empty inputs (should use defaults)
+        doc.setFont(null, null);
+        String nullInputText = 'This uses default font settings';
+        doc.text(nullInputText, 50, 400);
+
+        // Save the PDF to verify it was created successfully
+        Id contentDocId = doc.save('SetFont_Test_' + System.now().getTime());
+        System.assertNotEquals(null, contentDocId, 'PDF ContentDocument ID should not be null');
+
+        Test.stopTest();
+    }
+
+    /**
+     * @description Test the setFillColor method
+     */
+    @isTest
+    static void testSetFillColor() {
+        Test.startTest();
+
+        // Create a PDF document
+        Pdf doc = new Pdf();
+
+        // Test rectangles with different fill colors
+        Integer x = 100;
+        Integer y = 100;
+        Integer width = 100;
+        Integer height = 30;
+
+        // Red filled rectangle
+        doc.setFillColor('FF0000');
+        doc.rect(x, y, width, height, 'F');
+
+        // Blue filled rectangle
+        doc.setFillColor('0000FF');
+        doc.rect(x, y + 50, width, height, 'F');
+
+        // Green filled rectangle
+        doc.setFillColor('00FF00');
+        doc.rect(x, y + 100, width, height, 'F');
+
+        // Invalid color should default to black
+        doc.setFillColor('INVALID');
+        doc.rect(x, y + 150, width, height, 'F');
+
+        // Generate the PDF
+        Id contentDocId = doc.save('FillColor_Test_' + System.now().getTime());
+
+        // Basic validation - PDF should be generated
+        System.assertNotEquals(null, contentDocId, 'PDF ContentDocument ID should not be null');
+
+        Test.stopTest();
+    }
+    
+    /**
+     * @description Test the applyStyles method including lineWidth settings
+     */
+    @isTest
+    static void testApplyStyles() {
+        Test.startTest();
         
-        // More detailed validation
-        // For horizontal and vertical lines, we expect to see rectangle elements
-        // For diagonal lines, we expect to see a series of small dots
-        System.assert(pdfContent.containsIgnoreCase('/Rect') || pdfContent.containsIgnoreCase('/R'), 
-                    'PDF should contain rectangle elements');
+        // Create a PDF document
+        Pdf doc = new Pdf();
+        
+        // Create a styles map with various properties
+        Map<String, Object> styles = new Map<String, Object>{
+            'fillColor' => 'FF0000',      // Red fill
+            'textColor' => '0000FF',      // Blue text
+            'lineColor' => '00FF00',      // Green line
+            'lineWidth' => 5,             // 5pt line width
+            'fontName' => 'Helvetica',
+            'fontSize' => 14,
+            'fontStyle' => 'bold'
+        };
+        
+        // Apply the styles
+        Pdf returnedDoc = doc.applyStyles(styles, false);
+        System.assertEquals(doc, returnedDoc, 'applyStyles method should return the same Pdf instance for method chaining');
+        
+        // Now test the applied styles with a rectangle and text
+        doc.rect(50, 100, 100, 50, 'B');  // B = both fill and stroke
+        doc.text('Testing applyStyles', 50, 180);
+        
+        // Apply only font styles (fontOnly=true parameter)
+        Map<String, Object> fontStyles = new Map<String, Object>{
+            'fillColor' => '000000',  // This should be ignored with fontOnly=true
+            'lineColor' => '000000',  // This should be ignored with fontOnly=true
+            'lineWidth' => 1,         // This should be ignored with fontOnly=true
+            'fontName' => 'Courier',
+            'fontSize' => 18,
+            'fontStyle' => 'italic'
+        };
+        
+        doc.applyStyles(fontStyles, true);
+        doc.text('Font-only styles applied', 50, 220);
+        
+        // Test applying lineWidth with null and negative values (should default to 1)
+        Map<String, Object> invalidLineWidthStyles = new Map<String, Object>{
+            'lineWidth' => null
+        };
+        doc.applyStyles(invalidLineWidthStyles, false);
+        doc.rect(50, 250, 100, 50, 'S'); // S = stroke only
+        
+        // Now set a negative value which should also default to 1
+        Map<String, Object> negativeLineWidthStyles = new Map<String, Object>{
+            'lineWidth' => -3
+        };
+        doc.applyStyles(negativeLineWidthStyles, false);
+        doc.rect(50, 320, 100, 50, 'S');
+        
+        // Generate the PDF
+        Id contentDocId = doc.save('ApplyStyles_Test_' + System.now().getTime());
+        System.assertNotEquals(null, contentDocId, 'PDF ContentDocument ID should not be null');
+        
+        Test.stopTest();
+    }
+    
+    /**
+     * @description Test the setFont(String) method and the getFontName/getFontStyle getter methods
+     */
+    @isTest
+    static void testFontGettersAndSetters() {
+        Test.startTest();
+        
+        // Create a PDF document
+        Pdf doc = new Pdf();
+        
+        // Verify initial default font settings
+        System.assertEquals(PdfConstants.FONT_HELVETICA, doc.getFontName(), 'Default font should be Helvetica');
+        System.assertEquals(PdfConstants.STYLE_NORMAL, doc.getFontStyle(), 'Default font style should be normal');
+        
+        // Test setFont with single parameter
+        String testFont = 'Courier';
+        Pdf returnedDoc = doc.setFont(testFont);
+        
+        // Verify method chaining
+        System.assertEquals(doc, returnedDoc, 'setFont method should return the same Pdf instance for method chaining');
+        
+        // Verify font was set correctly
+        System.assertEquals('Courier', doc.getFontName(), 'Font name should be set to Courier');
+        System.assertEquals(PdfConstants.STYLE_NORMAL, doc.getFontStyle(), 
+            'Font style should remain normal when only font name is changed');
+        
+        // Test with invalid font name
+        doc.setFont('InvalidFont');
+        System.assertEquals(PdfConstants.FONT_HELVETICA, doc.getFontName(), 
+            'Invalid font name should default to Helvetica');
+        
+        // Test with two-parameter setFont and verify with getters
+        doc.setFont(PdfConstants.FONT_HELVETICA, PdfConstants.STYLE_BOLD);
+        System.assertEquals(PdfConstants.FONT_HELVETICA, doc.getFontName(), 'Font name should be Helvetica');
+        System.assertEquals(PdfConstants.STYLE_BOLD, doc.getFontStyle(), 'Font style should be bold');
+        
+        // Test with null font name
+        doc.setFont(null);
+        System.assertEquals(PdfConstants.FONT_HELVETICA, doc.getFontName(), 
+            'Null font name should default to Helvetica');
+        
+        // Test with empty font name
+        doc.setFont('');
+        System.assertEquals(PdfConstants.FONT_HELVETICA, doc.getFontName(), 
+            'Empty font name should default to Helvetica');
+        
+        // Add some text to verify fonts are applied
+        doc.setFont('Helvetica', 'normal').text('Normal Helvetica', 50, 100);
+        doc.setFont('Helvetica', 'bold').text('Bold Helvetica', 50, 150);
+        doc.setFont('Courier').text('Normal Courier', 50, 200);
+        
+        // Generate the PDF to verify everything works
+        Id contentDocId = doc.save('FontGetterSetter_Test_' + System.now().getTime());
+        System.assertNotEquals(null, contentDocId, 'PDF ContentDocument ID should not be null');
+        
+        Test.stopTest();
+    }
+    
+    /**
+     * @description Test the pageSize method
+     */
+    @isTest
+    static void testPageSize() {
+        Test.startTest();
+        
+        // Create a PDF document
+        Pdf doc = new Pdf();
+        
+        // Get the page size
+        Map<String, Integer> pageSizeMap = doc.pageSize();
+        
+        // Verify the page size matches the constants
+        System.assertEquals(PdfConstants.PAGE_WIDTH, pageSizeMap.get('width'), 
+            'Page width should match PdfConstants.PAGE_WIDTH');
+        System.assertEquals(PdfConstants.PAGE_HEIGHT, pageSizeMap.get('height'), 
+            'Page height should match PdfConstants.PAGE_HEIGHT');
+        
+        // Validate standard US Letter size (8.5 x 11 inches at 72ppi)
+        System.assertEquals(612, pageSizeMap.get('width'), 
+            'Default page width should be 612 points (8.5 inches at 72ppi)');
+        System.assertEquals(792, pageSizeMap.get('height'), 
+            'Default page height should be 792 points (11 inches at 72ppi)');
+        
+        Test.stopTest();
+    }
+    
+    /**
+     * @description Test the rect method in the Pdf class (not the PdfRect class which has its own test)
+     */
+    @isTest
+    static void testRectMethod() {
+        Test.startTest();
+        
+        // Create a PDF document
+        Pdf doc = new Pdf();
+        
+        // Draw rectangles with different parameters
+        Integer x = 100;
+        Integer y = 150;
+        Integer width = 200;
+        Integer height = 100;
+        
+        // Test method chaining for rect(x,y,width,height,fillStyle)
+        Pdf returnedDoc = doc.rect(x, y, width, height, 'F');
+        System.assertEquals(doc, returnedDoc, 'rect method should return the same Pdf instance for method chaining');
+        
+        // Test changing styles and drawing more rectangles
+        doc.setFillColor('FF0000').setLineColor('0000FF').setLineWidth(3);
+        doc.rect(x, y + height + 20, width, height, 'S'); // Stroke only
+        
+        // Draw rectangle with both stroke and fill
+        doc.rect(x, y + (height + 20) * 2, width, height, 'B');
+        
+        // Create a PdfRect object and use the overloaded rect method
+        PdfRect customRect = new PdfRect();
+        customRect.x = x + width + 50;
+        customRect.y = y;
+        customRect.width = 150;
+        customRect.height = 80;
+        customRect.fillStyle = 'F';
+        customRect.lineColor = '00FF00';
+        customRect.fillColor = '00FFFF';
+        customRect.lineWidth = 2;
+        
+        // Test method chaining for rect(PdfRect)
+        returnedDoc = doc.rect(customRect);
+        System.assertEquals(doc, returnedDoc, 'rect(PdfRect) method should return the same Pdf instance for method chaining');
+        
+        // Verify at least one rectangle was added to the PDF
+        System.assert(!doc.rectElements.isEmpty(), 'Rectangle elements list should not be empty');
+        
+        // Verify the customRect was added to rectElements
+        Boolean customRectFound = false;
+        for (PdfRect rect : doc.rectElements) {
+            if (rect.x == customRect.x && rect.y == customRect.y && 
+                rect.fillColor == customRect.fillColor) {
+                customRectFound = true;
+                break;
+            }
+        }
+        System.assert(customRectFound, 'Custom rectangle should be found in rectElements');
+        
+        // Generate the PDF to ensure everything works
+        Id contentDocId = doc.save('RectMethod_Test_' + System.now().getTime());
+        System.assertNotEquals(null, contentDocId, 'PDF ContentDocument ID should not be null');
         
         Test.stopTest();
     }
