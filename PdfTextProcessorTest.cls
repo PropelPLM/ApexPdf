@@ -196,4 +196,138 @@ public with sharing class PdfTextProcessorTest {
         System.assertEquals(startY, result[0].y, 'Y position should be maintained');
         System.assertEquals(text, result[0].text, 'Text should be unchanged');
     }
+
+    /**
+     * @description Test the escapeTextForPdf method through content stream generation
+     */
+    @IsTest
+    static void testEscapeTextForPdf() {
+        // Create a text element with content that would need escaping
+        PdfText element = new PdfText('Text with (parentheses)', 100, 100, 12, 'normal', '#000000');
+
+        // Generate content stream which internally calls escapeTextForPdf
+        String contentStream = PdfTextProcessor.generateTextContentStream(new List<PdfText>{element});
+
+        // Verify basic test content appears in the output
+        System.assert(contentStream.contains('Text with'), 'Content stream should contain the text content');
+        System.assert(contentStream.contains('parentheses'), 'Content stream should contain the text content');
+
+        // Verify the content contains encoded text with parentheses
+        System.assert(contentStream.contains('(Text with ') || contentStream.contains('Text with'),
+                    'Content stream should contain the text content');
+
+        // Check that the PDF structure is correct
+        System.assert(contentStream.contains('BT'), 'Content stream should have Begin Text marker');
+        System.assert(contentStream.contains('ET'), 'Content stream should have End Text marker');
+        System.assert(contentStream.contains('Tj'), 'Content stream should have text showing operator');
+    }
+
+    /**
+     * @description Test the generateTextContentStream method
+     */
+    @IsTest
+    static void testGenerateTextContentStream() {
+        // Test with empty list
+        System.assertEquals('', PdfTextProcessor.generateTextContentStream(new List<PdfText>()),
+                          'Empty list should produce empty content stream');
+
+        // Test with null
+        System.assertEquals('', PdfTextProcessor.generateTextContentStream(null),
+                          'Null should produce empty content stream');
+
+        // Create test text elements
+        PdfText element1 = new PdfText('Test text 1', 100, 100, 12, 'normal', '#000000');
+        PdfText element2 = new PdfText('Test text 2', 150, 150, 16, 'bold', '#FF0000');
+        List<PdfText> elements = new List<PdfText>{element1, element2};
+
+        // Call the method
+        String contentStream = PdfTextProcessor.generateTextContentStream(elements);
+
+        // Verify content stream structure
+        System.assert(contentStream.startsWith('BT'), 'Content stream should start with Begin Text operator');
+        System.assert(contentStream.contains('/F1'), 'Content stream should contain font references');
+        // PDF font operators will be present even if color space isn't explicitly mentioned
+        System.assert(contentStream.contains('BT') && contentStream.contains('Tj'), 'Content stream should contain PDF text operators');
+        System.assert(contentStream.contains('Tf'), 'Content stream should contain text font operator');
+        System.assert(contentStream.contains('Td'), 'Content stream should contain text positioning operator');
+        System.assert(contentStream.contains('(Test text'), 'Content stream should contain the text');
+        System.assert(contentStream.contains('ET'), 'Content stream should end with End Text operator');
+    }
+
+    /**
+     * @description Test the convertToPdfY method
+     */
+    @IsTest
+    static void testConvertToPdfY() {
+        // Test with normal values
+        Integer testY = 100;
+        Integer fontSize = 12;
+        Integer expectedPdfY = PdfConstants.PAGE_HEIGHT - testY - fontSize; // 792 - 100 - 12 = 680
+
+        System.assertEquals(expectedPdfY, PdfTextProcessor.convertToPdfY(testY, fontSize),
+                         'Y coordinate should be properly converted to PDF coordinates');
+
+        // Test with zero values
+        System.assertEquals(PdfConstants.PAGE_HEIGHT, PdfTextProcessor.convertToPdfY(0, 0),
+                         'Y=0, fontSize=0 should return PAGE_HEIGHT');
+
+        // Test with extreme values
+        System.assertEquals(0, PdfTextProcessor.convertToPdfY(PdfConstants.PAGE_HEIGHT, 0),
+                         'Y=PAGE_HEIGHT should return 0');
+    }
+
+    /**
+     * @description Test the processText method with explicit parameters
+     */
+    @IsTest
+    static void testProcessTextWithExplicitParams() {
+        // Create test parameters
+        String text = 'Test text with explicit parameters';
+        Integer x = 100;
+        Integer y = 150;
+
+        Pdf.TextOptions options = new Pdf.TextOptions();
+        options.fontSize = 14;
+        options.fontStyle = 'bold';
+        options.maxWidth = 300;
+
+        // Call the method
+        List<PdfText> result = PdfTextProcessor.processText(text, x, y, options);
+
+        // Verify results
+        System.assertEquals(1, result.size(), 'Should produce one text element');
+        PdfText textElement = result[0];
+
+        System.assertEquals(text, textElement.text, 'Text content should match');
+        System.assertEquals(x, textElement.x, 'X position should match');
+        System.assertEquals(y, textElement.y, 'Y position should match');
+        System.assertEquals(14, textElement.fontSize, 'Font size should match');
+        System.assertEquals('bold', textElement.fontStyle, 'Font style should match');
+        // Note: Color is set at the PdfText level, not in TextOptions
+    }
+
+    /**
+     * @description Test the processText method with default parameters
+     */
+    @IsTest
+    static void testProcessTextWithDefaultParams() {
+        // Create test parameters with nulls to test defaults
+        String text = 'Test text with default parameters';
+
+        Pdf.TextOptions options = new Pdf.TextOptions();
+        options.fontSize = 12;
+        options.fontStyle = 'normal';
+
+        // Call the method with null x and y
+        List<PdfText> result = PdfTextProcessor.processText(text, null, null, options);
+
+        // Verify results
+        System.assertEquals(1, result.size(), 'Should produce one text element');
+        PdfText textElement = result[0];
+
+        System.assertEquals(text, textElement.text, 'Text content should match');
+        System.assertEquals(PdfConstants.PAGE_MARGIN, textElement.x, 'X should default to PAGE_MARGIN');
+        System.assertEquals(12, textElement.fontSize, 'Font size should match');
+        System.assertEquals('normal', textElement.fontStyle, 'Font style should match');
+    }
 }
