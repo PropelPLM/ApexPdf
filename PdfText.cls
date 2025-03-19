@@ -13,6 +13,12 @@ public with sharing class PdfText {
     public String fontName = PdfConstants.FONT_HELVETICA; // Default font
     public Boolean needsPageBreak = false;
 
+    // Transformation properties
+    public Decimal rotationAngle = 0;     // Rotation angle in degrees
+    public Decimal scaleX = 1.0;          // Horizontal scale factor
+    public Decimal scaleY = 1.0;          // Vertical scale factor
+    public Decimal opacity = 1.0;         // Opacity (1.0 = fully opaque, 0.0 = fully transparent)
+
     /**
      * @description Constructor for PdfText
      * @param text The text content
@@ -85,5 +91,46 @@ public with sharing class PdfText {
         } else {
             this.fontName = PdfConstants.FONT_HELVETICA;
         }
+    }
+
+    /**
+     * @description Sets the rotation angle for this text element
+     * @param angle Rotation angle in degrees (0-360)
+     * @return The current PdfText instance for method chaining
+     */
+    public PdfText setRotation(Decimal angle) {
+        this.rotationAngle = Math.mod(angle.intValue(), 360);
+        return this;
+    }
+
+    /**
+     * @description Sets the scale factors for this text element
+     * @param scaleX Horizontal scale factor (1.0 = normal size)
+     * @param scaleY Vertical scale factor (1.0 = normal size)
+     * @return The current PdfText instance for method chaining
+     */
+    public PdfText setScale(Decimal scaleX, Decimal scaleY) {
+        this.scaleX = scaleX > 0 ? scaleX : 1.0;
+        this.scaleY = scaleY > 0 ? scaleY : 1.0;
+        return this;
+    }
+
+    /**
+     * @description Sets uniform scaling for this text element
+     * @param scale Scale factor to apply to both dimensions (1.0 = normal size)
+     * @return The current PdfText instance for method chaining
+     */
+    public PdfText setScale(Decimal scale) {
+        return setScale(scale, scale);
+    }
+
+    /**
+     * @description Sets the opacity for this text element
+     * @param opacity Opacity value between 0.0 (transparent) and 1.0 (opaque)
+     * @return The current PdfText instance for method chaining
+     */
+    public PdfText setOpacity(Decimal opacity) {
+        this.opacity = Math.max(0.0, Math.min(1.0, opacity));
+        return this;
     }
 }

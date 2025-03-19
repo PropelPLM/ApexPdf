@@ -20,6 +20,9 @@ Initial assessment of what is supported and what is missing:
    - Font styles (normal, bold, italic, bold-italic)
    - Text color control
    - Vertical text positioning with auto-incrementing Y position
+   - Text transformations (rotation, scaling)
+   - Text opacity control
+   - Watermark text on all pages
 
 2. **Image Support**
    - JPEG image embedding
@@ -47,7 +50,6 @@ Initial assessment of what is supported and what is missing:
 
 1. **Advanced Text Features**
    - Text alignment (center, right-align, justify)
-   - Text transformation (scaling, rotation)
    - Text decoration (underline, strikethrough)
    - Text spacing (character, word, line spacing)
    - Advanced text styling (gradient text, outlined text)
@@ -154,7 +156,9 @@ This implementation plan focuses on the most valuable features first while build
 
 # Usage
 This repo is intended to be included in a larger project as a git submodule.
-For example, when you have deployed the Apex code in this repo, the following execute anon apex should produce a PDF file in **Files**
+
+After deploying the Apex PDF files to your org, the following example should produce a PDF file in the **Files** tab of your org.
+
 ```
 List<Account> accounts = [SELECT Id, Name, Phone, Industry, Type,
                             BillingStreet, BillingCity, BillingState,
@@ -196,6 +200,10 @@ options.alternateRowStyles = new Map<String, Object>{
 
 // Generate the table output
 doc.autoTable(columns, tableData, options);
+
+// Add a watermark to all pages (if needed)
+doc.watermark('CONFIDENTIAL');
+
 
 // Save and return the PDF ID
 doc.save('Account_Report_' + System.now().format('yyyy-MM-dd'));

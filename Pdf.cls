@@ -50,6 +50,7 @@ public with sharing class Pdf {
     private List<List<PdfText>> pageTextElements;  // Text elements for each page
     private List<List<PdfImage>> pageImageElements;  // Image elements for each page
     private List<List<PdfRect>> pageRectElements;  // Rectangle elements for each page
+    private List<PdfText> watermarkText;  // Watermark text elements to apply to all pages
 
     // Style properties
     private String fillColor = '000000';  // Default black
@@ -364,10 +365,68 @@ public with sharing class Pdf {
          */
         public Integer wrapToXPosition;
 
+        // Transformation properties
+        public Decimal rotationAngle = 0;     // Rotation angle in degrees
+        public Decimal scaleX = 1.0;          // Horizontal scale factor
+        public Decimal scaleY = 1.0;          // Vertical scale factor
+        public Decimal opacity = 1.0;         // Opacity (1.0 = fully opaque, 0.0 = fully transparent)
+        public Boolean isWatermark = false;   // Flag to indicate if this is a watermark (will be applied to all pages)
+
         public TextOptions() {
             this.fontSize = PdfConstants.DEFAULT_FONT_SIZE;
             this.fontStyle = PdfConstants.STYLE_NORMAL;
             this.maxWidth = PdfConstants.PAGE_WIDTH - (PdfConstants.PAGE_MARGIN * 2); // Default to full page width minus margins
+        }
+
+        /**
+         * @description Sets the rotation angle for text
+         * @param angle Rotation angle in degrees (0-360)
+         * @return The current TextOptions instance for method chaining
+         */
+        public TextOptions setRotation(Decimal angle) {
+            this.rotationAngle = Math.mod(angle.intValue(), 360);
+            return this;
+        }
+
+        /**
+         * @description Sets the scale factors for text
+         * @param scaleX Horizontal scale factor (1.0 = normal size)
+         * @param scaleY Vertical scale factor (1.0 = normal size)
+         * @return The current TextOptions instance for method chaining
+         */
+        public TextOptions setScale(Decimal scaleX, Decimal scaleY) {
+            this.scaleX = scaleX > 0 ? scaleX : 1.0;
+            this.scaleY = scaleY > 0 ? scaleY : 1.0;
+            return this;
+        }
+
+        /**
+         * @description Sets uniform scaling for text
+         * @param scale Scale factor to apply to both dimensions (1.0 = normal size)
+         * @return The current TextOptions instance for method chaining
+         */
+        public TextOptions setScale(Decimal scale) {
+            return setScale(scale, scale);
+        }
+
+        /**
+         * @description Sets the opacity for text
+         * @param opacity Opacity value between 0.0 (transparent) and 1.0 (opaque)
+         * @return The current TextOptions instance for method chaining
+         */
+        public TextOptions setOpacity(Decimal opacity) {
+            this.opacity = Math.max(0.0, Math.min(1.0, opacity));
+            return this;
+        }
+
+        /**
+         * @description Sets this text as a watermark that will be applied to all pages
+         * @param isWatermark Whether this text should be treated as a watermark
+         * @return The current TextOptions instance for method chaining
+         */
+        public TextOptions setWatermark(Boolean isWatermark) {
+            this.isWatermark = isWatermark;
+            return this;
         }
     }
 
@@ -390,6 +449,7 @@ public with sharing class Pdf {
         this.imageElements = new List<PdfImage>();
         this.rectElements = new List<PdfRect>();
         this.imageObjectNumbers = new Map<String, Integer>();
+        this.watermarkText = new List<PdfText>();
 
         // Initialize page tracking
         this.pageTextElements = new List<List<PdfText>>();
@@ -572,6 +632,24 @@ public with sharing class Pdf {
                 element.fontStyle = this.fontStyle;
             }
 
+            // Apply transformation options if specified
+            if (options != null) {
+                // Apply rotation if specified
+                if (options.rotationAngle != 0) {
+                    element.setRotation(options.rotationAngle);
+                }
+
+                // Apply scaling if specified
+                if (options.scaleX != 1.0 || options.scaleY != 1.0) {
+                    element.setScale(options.scaleX, options.scaleY);
+                }
+
+                // Apply opacity if specified
+                if (options.opacity != 1.0) {
+                    element.setOpacity(options.opacity);
+                }
+            }
+
             // Replace the element in the list with our updated version
             processedElements[i] = element;
 
@@ -721,6 +799,86 @@ public with sharing class Pdf {
      */
     public Pdf h3(String text, Integer x, Integer y) {
         return heading(3, text, x, y, PdfConstants.H3_FONT_SIZE);
+    }
+
+    /**
+     * @description Adds a watermark text to be displayed on all pages
+     * @param text The watermark text
+     * @param options Text options for styling the watermark
+     * @return The current Pdf instance for method chaining
+     */
+    public Pdf watermark(String text, TextOptions options) {
+        // Create default options if none provided
+        if (options == null) {
+            options = new TextOptions();
+        }
+
+        // Set default watermark properties if not specified
+        if (options.rotationAngle == 0) {
+            options.setRotation(45); // Default 45-degree angle for watermarks
+        }
+
+        if (options.opacity == 1.0) {
+            options.setOpacity(0.3); // Default 30% opacity for watermarks
+        }
+
+        if (options.scaleX == 1.0 && options.scaleY == 1.0) {
+            options.setScale(2.0); // Default larger scale for watermarks
+        }
+
+        // Calculate optimal positioning based on page size, text size, and scale factors
+        Integer pageWidth = PdfConstants.PAGE_WIDTH;
+        Integer pageHeight = PdfConstants.PAGE_HEIGHT;
+
+        // Estimate text dimensions
+        Decimal textWidth = PdfTextProcessor.estimateTextWidth(text, options);
+        Decimal textHeight = options.fontSize; // Base height on font size
+
+        // Scale factors impact the space needed
+        Decimal scaledWidth = textWidth * options.scaleX;
+        Decimal scaledHeight = textHeight * options.scaleY;
+
+        // Calculate optimal position to ensure text is centered and fully visible
+        Integer x = (Integer)(pageWidth / 2 - scaledWidth / 2);
+        Integer y = (Integer)(pageHeight / 2 + scaledHeight / 4); // Slight adjustment to lower position
+
+        // Apply additional positioning adjustments based on rotation
+        // For diagonal watermarks (around 45°), move down and right to ensure visibility
+        if (Math.abs(options.rotationAngle) > 20 && Math.abs(options.rotationAngle) < 70) {
+            // Move diagonally to ensure better positioning
+            x = x + (Integer)(scaledWidth * 0.3); // Move right
+            y = y + (Integer)(scaledHeight * 0.3); // Move down
+        }
+
+        // Process the text using the text processor's static method
+        List<PdfText> processedElements = PdfTextProcessor.processText(text, x, y, options);
+
+        // Apply watermark styling to all text elements
+        for (PdfText element : processedElements) {
+            // Set text color to light gray if not specified
+            if (element.textColor == '000000') { // If still default black
+                element.textColor = 'CCCCCC'; // Light gray
+            }
+
+            // Apply transformations from options
+            element.setRotation(options.rotationAngle);
+            element.setScale(options.scaleX, options.scaleY);
+            element.setOpacity(options.opacity);
+
+            // Add to watermark collection
+            this.watermarkText.add(element);
+        }
+
+        return this;
+    }
+
+    /**
+     * @description Adds a watermark text with default styling
+     * @param text The watermark text
+     * @return The current Pdf instance for method chaining
+     */
+    public Pdf watermark(String text) {
+        return watermark(text, null);
     }
 
     /**
@@ -922,11 +1080,77 @@ public with sharing class Pdf {
 
                 stream += rStr + ' ' + gStr + ' ' + bStr + ' rg\n';  // Set RGB color for text
 
-                // Position text using text matrix (Tm)
+                // Apply transformations if needed
+                Boolean hasTransformations = element.rotationAngle != 0 || element.scaleX != 1.0 || element.scaleY != 1.0;
+
+                // Save graphics state if we have transformations
+                if (hasTransformations) {
+                    stream += 'q\n'; // Save graphics state
+
+                    // Apply transparency/opacity if needed (using Graphics State ExtGState)
+                    if (element.opacity < 1.0) {
+                        // Format opacity to avoid scientific notation
+                        String opacityStr = element.opacity.toPlainString();
+                        stream += String.format('{0} gs\n', new String[]{ opacityStr });  // Apply ExtGState for opacity
+                    }
+                }
+
                 // PDF coordinates start from bottom-left, so we need to transform Y
                 Integer pdfY = PdfConstants.PAGE_HEIGHT - element.y - element.fontSize;
-                stream += '1 0 0 1 ' + element.x + ' ' + pdfY + ' Tm\n';
-                stream += '(' + escapePdfString(element.text) + ') Tj\n';
+
+                if (hasTransformations) {
+                    // For transformations, we need to:
+                    // 1. Translate to the desired position
+                    // 2. Rotate if needed
+                    // 3. Scale if needed
+                    // 4. Draw the text at origin
+                    // 5. Restore the graphics state
+
+                    // Calculate transformation matrix elements
+                    // [a b c d e f] where:
+                    // a, d = scale factors
+                    // b, c = rotation/shear
+                    // e, f = translation
+
+                    Decimal angle = element.rotationAngle * Math.PI / 180; // Convert to radians
+                    Decimal cosAngle = Math.cos(angle);
+                    Decimal sinAngle = Math.sin(angle);
+
+                    // Scale and rotate combined
+                    Decimal a = element.scaleX * cosAngle;
+                    Decimal bVal = element.scaleX * sinAngle;
+                    Decimal cVal = -element.scaleY * sinAngle;
+                    Decimal d = element.scaleY * cosAngle;
+
+                    // Translate to target position
+                    Decimal e = element.x;
+                    Decimal f = pdfY;
+
+                    // Format values to string avoiding scientific notation
+                    String matrixStr = String.format('{0} {1} {2} {3} {4} {5} cm\n',
+                                                new String[]{
+                                                    a.toPlainString(),
+                                                    bVal.toPlainString(),
+                                                    cVal.toPlainString(),
+                                                    d.toPlainString(),
+                                                    e.toPlainString(),
+                                                    f.toPlainString()
+                                                });
+                    stream += matrixStr;
+
+                    // Now place text at the transformed origin
+                    stream += 'BT\n';
+                    stream += '0 0 Td\n'; // Position at origin of transformed space
+                    stream += '(' + escapePdfString(element.text) + ') Tj\n';
+                    stream += 'ET\n';
+
+                    // Restore graphics state
+                    stream += 'Q\n';
+                } else {
+                    // Standard text positioning without transformations
+                    stream += '1 0 0 1 ' + element.x + ' ' + pdfY + ' Tm\n';
+                    stream += '(' + escapePdfString(element.text) + ') Tj\n';
+                }
             }
             stream += 'ET\n';  // End text block
         }
@@ -1075,6 +1299,26 @@ public with sharing class Pdf {
             pageTextElements.set(currentPageNum - 1, new List<PdfText>(textElements));
             pageImageElements.set(currentPageNum - 1, new List<PdfImage>(imageElements));
             pageRectElements.set(currentPageNum - 1, new List<PdfRect>(rectElements));
+        }
+
+        // Apply watermarks to all pages if any exist
+        if (!this.watermarkText.isEmpty()) {
+            for (Integer i = 0; i < this.pageTextElements.size(); i++) {
+                List<PdfText> pageText = this.pageTextElements[i];
+                List<PdfText> watermarkCopy = this.watermarkText.clone();
+
+                // Create a new list with watermarks first (at the bottom layer), then regular text
+                List<PdfText> newPageText = new List<PdfText>();
+
+                // Add watermarks first so they appear behind regular text
+                newPageText.addAll(watermarkCopy);
+
+                // Then add all the regular text elements
+                newPageText.addAll(pageText);
+
+                // Update the page text elements
+                this.pageTextElements[i] = newPageText;
+            }
         }
 
         // Reset object tracking

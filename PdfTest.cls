@@ -531,17 +531,17 @@ private class PdfTest {
 
         Test.stopTest();
     }
-    
+
     /**
      * @description Test the applyStyles method including lineWidth settings
      */
     @isTest
     static void testApplyStyles() {
         Test.startTest();
-        
+
         // Create a PDF document
         Pdf doc = new Pdf();
-        
+
         // Create a styles map with various properties
         Map<String, Object> styles = new Map<String, Object>{
             'fillColor' => 'FF0000',      // Red fill
@@ -552,15 +552,15 @@ private class PdfTest {
             'fontSize' => 14,
             'fontStyle' => 'bold'
         };
-        
+
         // Apply the styles
         Pdf returnedDoc = doc.applyStyles(styles, false);
         System.assertEquals(doc, returnedDoc, 'applyStyles method should return the same Pdf instance for method chaining');
-        
+
         // Now test the applied styles with a rectangle and text
         doc.rect(50, 100, 100, 50, 'B');  // B = both fill and stroke
         doc.text('Testing applyStyles', 50, 180);
-        
+
         // Apply only font styles (fontOnly=true parameter)
         Map<String, Object> fontStyles = new Map<String, Object>{
             'fillColor' => '000000',  // This should be ignored with fontOnly=true
@@ -570,144 +570,144 @@ private class PdfTest {
             'fontSize' => 18,
             'fontStyle' => 'italic'
         };
-        
+
         doc.applyStyles(fontStyles, true);
         doc.text('Font-only styles applied', 50, 220);
-        
+
         // Test applying lineWidth with null and negative values (should default to 1)
         Map<String, Object> invalidLineWidthStyles = new Map<String, Object>{
             'lineWidth' => null
         };
         doc.applyStyles(invalidLineWidthStyles, false);
         doc.rect(50, 250, 100, 50, 'S'); // S = stroke only
-        
+
         // Now set a negative value which should also default to 1
         Map<String, Object> negativeLineWidthStyles = new Map<String, Object>{
             'lineWidth' => -3
         };
         doc.applyStyles(negativeLineWidthStyles, false);
         doc.rect(50, 320, 100, 50, 'S');
-        
+
         // Generate the PDF
         Id contentDocId = doc.save('ApplyStyles_Test_' + System.now().getTime());
         System.assertNotEquals(null, contentDocId, 'PDF ContentDocument ID should not be null');
-        
+
         Test.stopTest();
     }
-    
+
     /**
      * @description Test the setFont(String) method and the getFontName/getFontStyle getter methods
      */
     @isTest
     static void testFontGettersAndSetters() {
         Test.startTest();
-        
+
         // Create a PDF document
         Pdf doc = new Pdf();
-        
+
         // Verify initial default font settings
         System.assertEquals(PdfConstants.FONT_HELVETICA, doc.getFontName(), 'Default font should be Helvetica');
         System.assertEquals(PdfConstants.STYLE_NORMAL, doc.getFontStyle(), 'Default font style should be normal');
-        
+
         // Test setFont with single parameter
         String testFont = 'Courier';
         Pdf returnedDoc = doc.setFont(testFont);
-        
+
         // Verify method chaining
         System.assertEquals(doc, returnedDoc, 'setFont method should return the same Pdf instance for method chaining');
-        
+
         // Verify font was set correctly
         System.assertEquals('Courier', doc.getFontName(), 'Font name should be set to Courier');
-        System.assertEquals(PdfConstants.STYLE_NORMAL, doc.getFontStyle(), 
+        System.assertEquals(PdfConstants.STYLE_NORMAL, doc.getFontStyle(),
             'Font style should remain normal when only font name is changed');
-        
+
         // Test with invalid font name
         doc.setFont('InvalidFont');
-        System.assertEquals(PdfConstants.FONT_HELVETICA, doc.getFontName(), 
+        System.assertEquals(PdfConstants.FONT_HELVETICA, doc.getFontName(),
             'Invalid font name should default to Helvetica');
-        
+
         // Test with two-parameter setFont and verify with getters
         doc.setFont(PdfConstants.FONT_HELVETICA, PdfConstants.STYLE_BOLD);
         System.assertEquals(PdfConstants.FONT_HELVETICA, doc.getFontName(), 'Font name should be Helvetica');
         System.assertEquals(PdfConstants.STYLE_BOLD, doc.getFontStyle(), 'Font style should be bold');
-        
+
         // Test with null font name
         doc.setFont(null);
-        System.assertEquals(PdfConstants.FONT_HELVETICA, doc.getFontName(), 
+        System.assertEquals(PdfConstants.FONT_HELVETICA, doc.getFontName(),
             'Null font name should default to Helvetica');
-        
+
         // Test with empty font name
         doc.setFont('');
-        System.assertEquals(PdfConstants.FONT_HELVETICA, doc.getFontName(), 
+        System.assertEquals(PdfConstants.FONT_HELVETICA, doc.getFontName(),
             'Empty font name should default to Helvetica');
-        
+
         // Add some text to verify fonts are applied
         doc.setFont('Helvetica', 'normal').text('Normal Helvetica', 50, 100);
         doc.setFont('Helvetica', 'bold').text('Bold Helvetica', 50, 150);
         doc.setFont('Courier').text('Normal Courier', 50, 200);
-        
+
         // Generate the PDF to verify everything works
         Id contentDocId = doc.save('FontGetterSetter_Test_' + System.now().getTime());
         System.assertNotEquals(null, contentDocId, 'PDF ContentDocument ID should not be null');
-        
+
         Test.stopTest();
     }
-    
+
     /**
      * @description Test the pageSize method
      */
     @isTest
     static void testPageSize() {
         Test.startTest();
-        
+
         // Create a PDF document
         Pdf doc = new Pdf();
-        
+
         // Get the page size
         Map<String, Integer> pageSizeMap = doc.pageSize();
-        
+
         // Verify the page size matches the constants
-        System.assertEquals(PdfConstants.PAGE_WIDTH, pageSizeMap.get('width'), 
+        System.assertEquals(PdfConstants.PAGE_WIDTH, pageSizeMap.get('width'),
             'Page width should match PdfConstants.PAGE_WIDTH');
-        System.assertEquals(PdfConstants.PAGE_HEIGHT, pageSizeMap.get('height'), 
+        System.assertEquals(PdfConstants.PAGE_HEIGHT, pageSizeMap.get('height'),
             'Page height should match PdfConstants.PAGE_HEIGHT');
-        
+
         // Validate standard US Letter size (8.5 x 11 inches at 72ppi)
-        System.assertEquals(612, pageSizeMap.get('width'), 
+        System.assertEquals(612, pageSizeMap.get('width'),
             'Default page width should be 612 points (8.5 inches at 72ppi)');
-        System.assertEquals(792, pageSizeMap.get('height'), 
+        System.assertEquals(792, pageSizeMap.get('height'),
             'Default page height should be 792 points (11 inches at 72ppi)');
-        
+
         Test.stopTest();
     }
-    
+
     /**
      * @description Test the rect method in the Pdf class (not the PdfRect class which has its own test)
      */
     @isTest
     static void testRectMethod() {
         Test.startTest();
-        
+
         // Create a PDF document
         Pdf doc = new Pdf();
-        
+
         // Draw rectangles with different parameters
         Integer x = 100;
         Integer y = 150;
         Integer width = 200;
         Integer height = 100;
-        
+
         // Test method chaining for rect(x,y,width,height,fillStyle)
         Pdf returnedDoc = doc.rect(x, y, width, height, 'F');
         System.assertEquals(doc, returnedDoc, 'rect method should return the same Pdf instance for method chaining');
-        
+
         // Test changing styles and drawing more rectangles
         doc.setFillColor('FF0000').setLineColor('0000FF').setLineWidth(3);
         doc.rect(x, y + height + 20, width, height, 'S'); // Stroke only
-        
+
         // Draw rectangle with both stroke and fill
         doc.rect(x, y + (height + 20) * 2, width, height, 'B');
-        
+
         // Create a PdfRect object and use the overloaded rect method
         PdfRect customRect = new PdfRect();
         customRect.x = x + width + 50;
@@ -718,29 +718,267 @@ private class PdfTest {
         customRect.lineColor = '00FF00';
         customRect.fillColor = '00FFFF';
         customRect.lineWidth = 2;
-        
+
         // Test method chaining for rect(PdfRect)
         returnedDoc = doc.rect(customRect);
         System.assertEquals(doc, returnedDoc, 'rect(PdfRect) method should return the same Pdf instance for method chaining');
-        
+
         // Verify at least one rectangle was added to the PDF
         System.assert(!doc.rectElements.isEmpty(), 'Rectangle elements list should not be empty');
-        
+
         // Verify the customRect was added to rectElements
         Boolean customRectFound = false;
         for (PdfRect rect : doc.rectElements) {
-            if (rect.x == customRect.x && rect.y == customRect.y && 
+            if (rect.x == customRect.x && rect.y == customRect.y &&
                 rect.fillColor == customRect.fillColor) {
                 customRectFound = true;
                 break;
             }
         }
         System.assert(customRectFound, 'Custom rectangle should be found in rectElements');
-        
+
         // Generate the PDF to ensure everything works
         Id contentDocId = doc.save('RectMethod_Test_' + System.now().getTime());
         System.assertNotEquals(null, contentDocId, 'PDF ContentDocument ID should not be null');
-        
+
         Test.stopTest();
     }
+
+    /**
+     * @description Tests the watermark functionality with default settings
+     */
+    @isTest
+    static void testDefaultWatermark() {
+        Test.startTest();
+
+        // Create a PDF document
+        Pdf doc = new Pdf();
+        doc.h1('Test Document with Default Watermark', 36, 50);
+        doc.text('This document tests the default watermark settings.', 36, 90);
+
+        // Add a watermark with default settings
+        doc.watermark('CONFIDENTIAL');
+
+        // Save the document
+        String filename = 'TestDefaultWatermark_' + DateTime.now().getTime();
+        Id docId = doc.save(filename);
+
+        // Assert the document was created
+        System.assertNotEquals(null, docId, 'Document with default watermark should be created successfully');
+
+        Test.stopTest();
+    }
+
+    /**
+     * @description Tests the watermark functionality with custom settings
+     */
+    @isTest
+    static void testCustomWatermark() {
+        Test.startTest();
+
+        // Create a PDF document
+        Pdf doc = new Pdf();
+        doc.h1('Test Document with Custom Watermark', 36, 50);
+        doc.text('This document tests custom watermark settings.', 36, 90);
+
+        // Create custom options for watermark
+        Pdf.TextOptions customOptions = new Pdf.TextOptions();
+        customOptions.fontSize = 36;
+        customOptions.setRotation(30);
+        customOptions.setOpacity(0.15);
+        customOptions.setScale(3.0);
+        customOptions.fontStyle = 'bold-italic';
+
+        // Add the watermark with custom options
+        doc.watermark('DRAFT', customOptions);
+
+        // Save the document
+        String filename = 'TestCustomWatermark_' + DateTime.now().getTime();
+        Id docId = doc.save(filename);
+
+        // Assert the document was created
+        System.assertNotEquals(null, docId, 'Document with custom watermark should be created successfully');
+
+        Test.stopTest();
+    }
+
+    /**
+     * @description Tests applying multiple watermarks to a single document
+     */
+    @isTest
+    static void testMultipleWatermarks() {
+        Test.startTest();
+
+        // Create a PDF document
+        Pdf doc = new Pdf();
+        doc.h1('Test Document with Multiple Watermarks', 36, 50);
+        doc.text('This document tests applying multiple watermarks.', 36, 90);
+
+        // Create options for first watermark
+        Pdf.TextOptions options1 = new Pdf.TextOptions();
+        options1.setRotation(45);
+        options1.setOpacity(0.2);
+        options1.setScale(2.5);
+        doc.setTextColor('#FF0000'); // Red color
+        doc.watermark('CONFIDENTIAL', options1);
+
+        // Create options for second watermark
+        Pdf.TextOptions options2 = new Pdf.TextOptions();
+        options2.setRotation(-30);
+        options2.setOpacity(0.15);
+        options2.setScale(2.0);
+        doc.setTextColor('#0000FF'); // Blue color
+        doc.watermark('DRAFT', options2);
+
+        // Save the document
+        String filename = 'TestMultipleWatermarks_' + DateTime.now().getTime();
+        Id docId = doc.save(filename);
+
+        // Assert the document was created
+        System.assertNotEquals(null, docId, 'Document with multiple watermarks should be created successfully');
+
+        Test.stopTest();
+    }
+
+    /**
+     * @description Tests the text scaling functionality
+     */
+    @isTest
+    static void testTextScaling() {
+        Test.startTest();
+
+        // Create a PDF document
+        Pdf doc = new Pdf();
+
+        // Create text options with scaling
+        Pdf.TextOptions scaleOptions = new Pdf.TextOptions();
+        scaleOptions.setScale(2.5);
+
+        // Add scaled text
+        doc.text('This text is scaled to 2.5x normal size', 100, 100, scaleOptions);
+
+        // Add another text with different scaling
+        Pdf.TextOptions differentScaleOptions = new Pdf.TextOptions();
+        differentScaleOptions.setScale(1.5, 3.0); // Wider than tall
+        doc.text('This text has non-uniform scaling (1.5x wide, 3x tall)', 100, 200, differentScaleOptions);
+
+        // Save the document
+        String filename = 'TestScaledText_' + DateTime.now().getTime();
+        Id docId = doc.save(filename);
+
+        // Assert the document was created
+        System.assertNotEquals(null, docId, 'Document with scaled text should be created successfully');
+
+        Test.stopTest();
+    }
+
+    /**
+     * @description Tests the text rotation functionality
+     */
+    @isTest
+    static void testTextRotation() {
+        Test.startTest();
+
+        // Create a PDF document
+        Pdf doc = new Pdf();
+
+        // Create text options with rotation
+        Pdf.TextOptions rotateOptions = new Pdf.TextOptions();
+        rotateOptions.setRotation(90); // 90 degrees rotation
+
+        // Add rotated text
+        doc.text('This text is rotated 90 degrees', 200, 200, rotateOptions);
+
+        // Add another text with different rotation
+        Pdf.TextOptions anotherRotateOptions = new Pdf.TextOptions();
+        anotherRotateOptions.setRotation(45); // 45 degrees rotation
+        doc.text('This text is rotated 45 degrees', 300, 300, anotherRotateOptions);
+
+        // Test rotation normalization - should be normalized to 0-360 range
+        Pdf.TextOptions normalizedRotateOptions = new Pdf.TextOptions();
+        normalizedRotateOptions.setRotation(400); // Should be normalized to 40 degrees
+        doc.text('This text has normalized rotation of 400 degrees (should be 40)', 400, 400, normalizedRotateOptions);
+
+        // Save the document
+        String filename = 'TestRotatedText_' + DateTime.now().getTime();
+        Id docId = doc.save(filename);
+
+        // Assert the document was created
+        System.assertNotEquals(null, docId, 'Document with rotated text should be created successfully');
+
+        Test.stopTest();
+    }
+
+    /**
+     * @description Tests watermark positioning adjustments based on rotation
+     */
+    @isTest
+    static void testWatermarkPositioning() {
+        Test.startTest();
+
+        // Create a PDF document
+        Pdf doc = new Pdf();
+        doc.h1('Watermark Positioning Test', 36, 50);
+        doc.text('This document tests watermark positioning adjustments.', 36, 90);
+
+        // Create multi-line paragraph to verify watermark appears behind text
+        Integer midPageY = 300;
+        doc.text('This is a multi-line paragraph placed halfway down the page to verify that', 36, midPageY);
+        doc.text('the watermark appears behind the text. This text should be clearly readable while', 36, midPageY + 20);
+        doc.text('the watermark is visible underneath. This is important for document legibility.', 36, midPageY + 40);
+
+        // Test standard 45-degree watermark positioning
+        Pdf.TextOptions options1 = new Pdf.TextOptions();
+        options1.setRotation(45);
+        options1.setOpacity(0.3);
+        options1.setScale(2.0);
+        doc.watermark('DIAGONAL', options1);
+
+        // Save the document
+        String filename = 'TestWatermarkPositioning_' + DateTime.now().getTime();
+        Id docId = doc.save(filename);
+
+        // Assert the document was created
+        System.assertNotEquals(null, docId, 'Document with positioned watermark should be created successfully');
+
+        Test.stopTest();
+    }
+
+    /**
+     * @description Tests watermark layering (watermarks behind text)
+     */
+    @isTest
+    static void testWatermarkLayering() {
+        Test.startTest();
+
+        // Create a PDF document
+        Pdf doc = new Pdf();
+        doc.h1('Watermark Layering Test', 36, 50);
+        doc.text('This document tests watermark layering.', 36, 90);
+
+        // Add watermark first (should appear behind regular text)
+        Pdf.TextOptions options = new Pdf.TextOptions();
+        options.setScale(3.0);
+        options.setOpacity(0.2);
+        doc.watermark('BACKGROUND', options);
+
+        // Add a solid rectangle over the watermark area
+        doc.rect(150, 200, 300, 150, '#CCCCCC');
+
+        // Add text over the watermark area
+        doc.text('This text should appear on top of both the rectangle and watermark.', 175, 250);
+        doc.text('The watermark should be visible beneath the rectangle.', 175, 270);
+        doc.text('The z-order should be: 1) Text (top), 2) Rectangle, 3) Watermark (bottom)', 175, 290);
+
+        // Save the document
+        String filename = 'TestWatermarkLayering_' + DateTime.now().getTime();
+        Id docId = doc.save(filename);
+
+        // Assert the document was created
+        System.assertNotEquals(null, docId, 'Document with layered watermark should be created successfully');
+
+        Test.stopTest();
+    }
+
+
 }
