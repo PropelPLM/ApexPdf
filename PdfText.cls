@@ -19,6 +19,9 @@ public with sharing class PdfText {
     public Decimal scaleY = 1.0;          // Vertical scale factor
     public Decimal opacity = 1.0;         // Opacity (1.0 = fully opaque, 0.0 = fully transparent)
 
+    // Text decoration properties
+    public Boolean hasStrikethrough = false; // Whether text has strikethrough decoration
+
     /**
      * @description Constructor for PdfText
      * @param text The text content
@@ -131,6 +134,16 @@ public with sharing class PdfText {
      */
     public PdfText setOpacity(Decimal opacity) {
         this.opacity = Math.max(0.0, Math.min(1.0, opacity));
+        return this;
+    }
+
+    /**
+     * @description Sets the strikethrough property for this text element
+     * @param strikethrough True to apply strikethrough, false to remove it
+     * @return The current PdfText instance for method chaining
+     */
+    public PdfText setStrikethrough(Boolean strikethrough) {
+        this.hasStrikethrough = strikethrough;
         return this;
     }
 }

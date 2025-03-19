@@ -492,6 +492,60 @@ private class PdfTest {
     }
 
     /**
+     * @description Test the strikethrough text feature
+     */
+    @isTest
+    static void testStrikethroughText() {
+        Test.startTest();
+
+        // Create a PDF document
+        Pdf doc = new Pdf();
+
+        // Add a title
+        doc.h1('Strikethrough Text Demo', 50, 50);
+        
+        // Normal text for comparison
+        String normalText = 'This is normal text without strikethrough';
+        doc.setFont('Helvetica', PdfConstants.STYLE_NORMAL);
+        doc.text(normalText, 50, 100);
+        
+        // Basic strikethrough text
+        String strikethroughText = 'This text has strikethrough formatting';
+        doc.setFont('Helvetica', PdfConstants.STYLE_STRIKETHROUGH);
+        doc.text(strikethroughText, 50, 150);
+        
+        // Bold strikethrough text
+        String boldStrikethroughText = 'This is bold text with strikethrough';
+        doc.setFont('Helvetica', PdfConstants.STYLE_BOLD_STRIKETHROUGH);
+        doc.text(boldStrikethroughText, 50, 200);
+        
+        // Italic strikethrough text
+        String italicStrikethroughText = 'This is italic text with strikethrough';
+        doc.setFont('Helvetica', PdfConstants.STYLE_ITALIC_STRIKETHROUGH);
+        doc.text(italicStrikethroughText, 50, 250);
+        
+        // Bold italic strikethrough text
+        String boldItalicStrikethroughText = 'This is bold italic text with strikethrough';
+        doc.setFont('Helvetica', PdfConstants.STYLE_BOLD_ITALIC_STRIKETHROUGH);
+        doc.text(boldItalicStrikethroughText, 50, 300);
+        
+        // Red strikethrough text (as requested)
+        String redStrikethroughText = 'This text has RED strikethrough formatting';
+        doc.setFont('Helvetica', PdfConstants.STYLE_STRIKETHROUGH);
+        doc.setTextColor('FF0000'); // Set text color to red
+        doc.text(redStrikethroughText, 50, 350);
+        
+        // Reset to black for next text
+        doc.setTextColor('000000');
+        
+        // Save the PDF to verify it was created successfully
+        Id contentDocId = doc.save('Strikethrough_Test_' + System.now().getTime());
+        System.assertNotEquals(null, contentDocId, 'PDF ContentDocument ID should not be null');
+        
+        Test.stopTest();
+    }
+    
+    /**
      * @description Test the setFillColor method
      */
     @isTest

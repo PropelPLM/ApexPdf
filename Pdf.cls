@@ -167,6 +167,18 @@ public with sharing class Pdf {
             } else if (normalizedStyle == 'bold italic' || normalizedStyle == 'bolditalic' || normalizedStyle == 'bold-italic') {
                 this.fontStyle = PdfConstants.STYLE_BOLD_ITALIC;
                 System.debug(LoggingLevel.FINE, 'Setting BOLD-ITALIC style');
+            } else if (normalizedStyle == 'strikethrough') {
+                this.fontStyle = PdfConstants.STYLE_STRIKETHROUGH;
+                System.debug(LoggingLevel.FINE, 'Setting STRIKETHROUGH style');
+            } else if (normalizedStyle == 'bold strikethrough' || normalizedStyle == 'boldstrikethrough' || normalizedStyle == 'bold-strikethrough') {
+                this.fontStyle = PdfConstants.STYLE_BOLD_STRIKETHROUGH;
+                System.debug(LoggingLevel.FINE, 'Setting BOLD-STRIKETHROUGH style');
+            } else if (normalizedStyle == 'italic strikethrough' || normalizedStyle == 'italicstrikethrough' || normalizedStyle == 'italic-strikethrough') {
+                this.fontStyle = PdfConstants.STYLE_ITALIC_STRIKETHROUGH;
+                System.debug(LoggingLevel.FINE, 'Setting ITALIC-STRIKETHROUGH style');
+            } else if (normalizedStyle.contains('bold') && normalizedStyle.contains('italic') && normalizedStyle.contains('strikethrough')) {
+                this.fontStyle = PdfConstants.STYLE_BOLD_ITALIC_STRIKETHROUGH;
+                System.debug(LoggingLevel.FINE, 'Setting BOLD-ITALIC-STRIKETHROUGH style');
             } else {
                 this.fontStyle = PdfConstants.STYLE_NORMAL;
                 System.debug(LoggingLevel.FINE, 'Setting NORMAL style');
@@ -1007,10 +1019,23 @@ public with sharing class Pdf {
                 // Debug output
 
 
-                // Direct comparison with constants instead of string comparison
-                Boolean isBold = element.fontStyle == PdfConstants.STYLE_BOLD;
-                Boolean isItalic = element.fontStyle == PdfConstants.STYLE_ITALIC;
-                Boolean isBoldItalic = element.fontStyle == PdfConstants.STYLE_BOLD_ITALIC;
+                // Check for various style combinations
+                Boolean isBold = element.fontStyle == PdfConstants.STYLE_BOLD ||
+                               element.fontStyle == PdfConstants.STYLE_BOLD_STRIKETHROUGH ||
+                               element.fontStyle == PdfConstants.STYLE_BOLD_ITALIC_STRIKETHROUGH;
+
+                Boolean isItalic = element.fontStyle == PdfConstants.STYLE_ITALIC ||
+                                 element.fontStyle == PdfConstants.STYLE_ITALIC_STRIKETHROUGH ||
+                                 element.fontStyle == PdfConstants.STYLE_BOLD_ITALIC_STRIKETHROUGH;
+
+                Boolean isBoldItalic = element.fontStyle == PdfConstants.STYLE_BOLD_ITALIC ||
+                                     element.fontStyle == PdfConstants.STYLE_BOLD_ITALIC_STRIKETHROUGH;
+
+                // Set strikethrough flag based on style
+                element.hasStrikethrough = element.fontStyle == PdfConstants.STYLE_STRIKETHROUGH ||
+                                          element.fontStyle == PdfConstants.STYLE_BOLD_STRIKETHROUGH ||
+                                          element.fontStyle == PdfConstants.STYLE_ITALIC_STRIKETHROUGH ||
+                                          element.fontStyle == PdfConstants.STYLE_BOLD_ITALIC_STRIKETHROUGH;
 
 
 
@@ -1144,12 +1169,62 @@ public with sharing class Pdf {
                     stream += '(' + escapePdfString(element.text) + ') Tj\n';
                     stream += 'ET\n';
 
+                    // Draw strikethrough line if enabled
+                    if (element.hasStrikethrough) {
+                        // For transformed text, we need to draw the line in the transformed space
+                        // Calculate the width of the text (rough approximation)
+                        Integer textWidth = element.text.length() * (element.fontSize / 2);
+
+                        // Draw the line through the middle of the text
+                        Integer lineY = (element.fontSize / 3); // Slightly above center in local coordinates
+
+                        // Get the current text color - strikethrough should match text color
+                        String colorHex = element.textColor;
+                        // Convert hex color values to decimals (0-1)
+                        Decimal rColor = convertHexToDecimal(colorHex.substring(0, 2)) / 255.0;
+                        Decimal gColor = convertHexToDecimal(colorHex.substring(2, 4)) / 255.0;
+                        Decimal bColor = convertHexToDecimal(colorHex.substring(4, 6)) / 255.0;
+
+                        // Apply text color to the line
+                        stream += rColor.setScale(3) + ' ' + gColor.setScale(3) + ' ' + bColor.setScale(3) + ' RG\n';
+                        stream += '0 ' + lineY + ' m\n'; // Move to start position at origin + y offset
+                        stream += textWidth + ' ' + lineY + ' l\n'; // Draw line
+                        stream += '0.5 w\n'; // Line width 0.5 points
+                        stream += 'S\n'; // Stroke the line
+                    }
+
                     // Restore graphics state
                     stream += 'Q\n';
                 } else {
                     // Standard text positioning without transformations
                     stream += '1 0 0 1 ' + element.x + ' ' + pdfY + ' Tm\n';
                     stream += '(' + escapePdfString(element.text) + ') Tj\n';
+
+                    // Draw strikethrough line if enabled
+                    if (element.hasStrikethrough) {
+                        // Calculate the width of the text
+                        // This is a rough approximation as we don't have exact font metrics
+                        Integer textWidth = element.text.length() * (element.fontSize / 2);
+
+                        // Position the line through the middle of the text
+                        Integer lineY = pdfY + (element.fontSize / 3); // Slightly above center looks better
+
+                        // Get the current text color - strikethrough should match text color
+                        String colorHex = element.textColor;
+                        // Convert hex color values to decimals (0-1)
+                        Decimal rColor = convertHexToDecimal(colorHex.substring(0, 2)) / 255.0;
+                        Decimal gColor = convertHexToDecimal(colorHex.substring(2, 4)) / 255.0;
+                        Decimal bColor = convertHexToDecimal(colorHex.substring(4, 6)) / 255.0;
+
+                        // Create the line operators
+                        stream += 'q\n'; // Save graphics state
+                        stream += rColor.setScale(3) + ' ' + gColor.setScale(3) + ' ' + bColor.setScale(3) + ' RG\n'; // Set line color to match text
+                        stream += element.x + ' ' + lineY + ' m\n'; // Move to start position
+                        stream += (element.x + textWidth) + ' ' + lineY + ' l\n'; // Draw line to end position
+                        stream += '0.5 w\n'; // Line width 0.5 points
+                        stream += 'S\n'; // Stroke the line
+                        stream += 'Q\n'; // Restore graphics state
+                    }
                 }
             }
             stream += 'ET\n';  // End text block
@@ -1582,5 +1657,26 @@ public with sharing class Pdf {
         }
 
         return val;
+    }
+
+    /**
+     * @description Converts a hex string to a decimal value
+     * @param hexStr The hexadecimal string
+     * @return The decimal value
+     */
+    private Integer convertHexToDecimal(String hexStr) {
+        String hexChars = '0123456789ABCDEF';
+        Integer result = 0;
+
+        for (Integer i = 0; i < hexStr.length(); i++) {
+            String charAtIndex = hexStr.substring(i, i+1).toUpperCase();
+            Integer hexValue = hexChars.indexOf(charAtIndex);
+            if (hexValue < 0) {
+                hexValue = 0; // Default to 0 for invalid characters
+            }
+            result = (result * 16) + hexValue;
+        }
+
+        return result;
     }
 }

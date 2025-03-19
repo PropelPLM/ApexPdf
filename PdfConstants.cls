@@ -22,6 +22,10 @@ public class PdfConstants {
     public static final String STYLE_BOLD = 'bold';
     public static final String STYLE_ITALIC = 'italic';
     public static final String STYLE_BOLD_ITALIC = 'bold italic';
+    public static final String STYLE_STRIKETHROUGH = 'strikethrough';
+    public static final String STYLE_BOLD_STRIKETHROUGH = 'bold strikethrough';
+    public static final String STYLE_ITALIC_STRIKETHROUGH = 'italic strikethrough';
+    public static final String STYLE_BOLD_ITALIC_STRIKETHROUGH = 'bold italic strikethrough';
 
     // Font constants
     public static final String FONT_HELVETICA = 'Helvetica';

@@ -17,8 +17,9 @@ Initial assessment of what is supported and what is missing:
    - Basic text addition with font size control
    - Text wrapping with configurable max width
    - Headings (h1, h2, h3)
-   - Font styles (normal, bold, italic, bold-italic)
-   - Text color control
+   - Font styles (normal, bold, italic, bold-italic, strikethrough)
+   - Combined styles (bold-strikethrough, italic-strikethrough, bold-italic-strikethrough)
+   - Text color control (applies to both text and strikethrough line)
    - Vertical text positioning with auto-incrementing Y position
    - Text transformations (rotation, scaling)
    - Text opacity control
@@ -97,10 +98,12 @@ Initial assessment of what is supported and what is missing:
 Based on comparing our PDF API with jsPDF, here's a prioritized implementation plan:
 
 ### Phase 1: Essential Text Enhancements
-1. **Text Alignment**
+1. **Text Alignment and Formatting**
    - Add alignment options (left, center, right, justify)
    - Enhance TextOptions class to include alignment property
    - Update text processing to handle alignment
+   - Add strikethrough text styling
+   - Support combining strikethrough with other styles (bold, italic)
 
 2. **Document Metadata**
    - Add methods to set title, author, subject, keywords
@@ -144,8 +147,8 @@ Based on comparing our PDF API with jsPDF, here's a prioritized implementation p
    - Balance columns
 
 2. **Text Decoration**
-   - Underline, strikethrough
-   - Text transformations (rotation, scaling)
+   - Underline
+   - Additional text transformations
 
 3. **Advanced Table Features**
    - Table spanning cells
@@ -158,6 +161,35 @@ This implementation plan focuses on the most valuable features first while build
 This repo is intended to be included in a larger project as a git submodule.
 
 After deploying the Apex PDF files to your org, the following example should produce a PDF file in the **Files** tab of your org.
+
+```
+// Basic PDF with headings and strikethrough text
+Pdf doc = new Pdf();
+doc.h1('Document with Strikethrough Examples', 72, 72);
+
+// Normal text
+doc.setFont('Helvetica', PdfConstants.STYLE_NORMAL);
+doc.text('Normal text for comparison', 72, 120);
+
+// Basic strikethrough text
+doc.setFont('Helvetica', PdfConstants.STYLE_STRIKETHROUGH);
+doc.text('Text with strikethrough formatting', 72, 150);
+
+// Bold strikethrough text
+doc.setFont('Helvetica', PdfConstants.STYLE_BOLD_STRIKETHROUGH);
+doc.text('Bold text with strikethrough', 72, 180);
+
+// Red strikethrough text
+doc.setFont('Helvetica', PdfConstants.STYLE_STRIKETHROUGH);
+doc.setTextColor('FF0000'); // Red text and strikethrough
+doc.text('Red text with strikethrough', 72, 210);
+doc.setTextColor('000000'); // Reset to black
+
+// Save the PDF
+doc.save('Strikethrough_Example');
+```
+
+### Table Example
 
 ```
 List<Account> accounts = [SELECT Id, Name, Phone, Industry, Type,
